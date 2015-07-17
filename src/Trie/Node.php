@@ -1,5 +1,5 @@
 <?php
-namespace Trie;
+namespace Phersist\Trie;
 
 class Node
 {

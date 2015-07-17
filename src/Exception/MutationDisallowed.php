@@ -1,5 +1,5 @@
 <?php
-namespace Exception;
+namespace Phersist\Exception;
 
 class MutationDisallowed extends \DomainException
 {

@@ -1,9 +1,9 @@
 <?php
 namespace Phersist;
 
-use Exception\MutationDisallowed;
-use Trie\Leaf;
-use Trie\Node;
+use Phersist\Exception\MutationDisallowed;
+use Phersist\Trie\Leaf;
+use Phersist\Trie\Node;
 
 class Vector implements \ArrayAccess, \Countable
 {
@@ -23,8 +23,26 @@ class Vector implements \ArrayAccess, \Countable
     public function push($value)
     {
         $newVector = clone $this;
-        $newVector->root = $this->root->assoc($this->length, $value);
+        $path = $this->offsetToPath($this->length);
+        print_r($path);
+        $newVector->root = $this->root->assoc($path, $value);
         $newVector->length = $this->length + 1;
+        return $newVector;
+    }
+    private function offsetToPath($offset)
+    {
+        $shift = 5;
+        $path = [];
+        if ($offset > 0xffffffff) {
+            throw new \Exception('offset too large');
+        }
+        $i = 0;
+        for ($i = 0; $i < 32; $i += $shift) {
+            $val = $offset >> $i;
+            $val &= 0x1f;
+            array_push($path, $val);
+        }
+        return $path;
     }
 
     /**

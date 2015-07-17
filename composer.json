@@ -14,7 +14,7 @@
     "require": {},
     "autoload": {
       "psr-4": {
-        "Phersist": "./src"
+        "Phersist\\": "./src"
       }
     }
 }
