@@ -1,0 +1,15 @@
+{
+    "name": "bahulneel/phersist",
+    "description": "Persistent data structures for PHP",
+    "require-dev": {
+        "phpunit/phpunit": "^4.7"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Neel Upadhyaya",
+            "email": "bahulneel@gmail.com"
+        }
+    ],
+    "require": {}
+}
