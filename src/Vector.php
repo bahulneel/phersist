@@ -24,7 +24,6 @@ class Vector implements \ArrayAccess, \Countable
     {
         $newVector = clone $this;
         $path = $this->offsetToPath($this->length);
-        print_r($path);
         $newVector->root = $this->root->assoc($path, $value);
         $newVector->length = $this->length + 1;
         return $newVector;
@@ -40,7 +39,7 @@ class Vector implements \ArrayAccess, \Countable
         for ($i = 0; $i < 32; $i += $shift) {
             $val = $offset >> $i;
             $val &= 0x1f;
-            array_push($path, $val);
+            array_unshift($path, $val);
         }
         return $path;
     }
