@@ -46,7 +46,7 @@ class Vector implements \ArrayAccess, \Countable
         $newVector->tail = $tail;
         $newVector->tailLength++;
         if ($newVector->tailLength === 32) {
-            $path = $this->offsetToPath($newVector->tailLength);
+            $path = $this->offsetToPath($newVector->length);
             array_pop($path);
             $newVector->tail = new Node();
             $newVector->tailLength = 0;
