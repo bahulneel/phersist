@@ -28,7 +28,6 @@ class Node
     public function get($path)
     {
         $next = array_shift($path);
-
         $node = $this->children[$next];
 
         if ($node instanceof Node) {
@@ -79,6 +78,23 @@ class Node
         $newNode->children[$next] = new Node();
         $newNode->children[$next]->set($leaf->path(), $leaf->value());
         $newNode->children[$next]->set($path, $value);
+        return $newNode;
+    }
+
+    public function assocNode($path, Node $node)
+    {
+        $newNode = clone $this;
+        $next = array_shift($path);
+        if (!count($path)) {
+            $newNode->children[$next] = $node;
+            return $newNode;
+        }
+
+        if (!isset($newNode->children[$next])) {
+            $newNode->children[$next] = new Node();
+        }
+
+        $newNode->children[$next] = $newNode->children[$next]->assocNode($path, $node);
         return $newNode;
     }
 }

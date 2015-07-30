@@ -14,18 +14,43 @@ class Vector implements \ArrayAccess, \Countable
 
     private $length;
 
+    /**
+     * @var Node
+     */
+    private $tail;
+
+    private $tailLength;
+
+    private $tailPath;
+
     public function __construct()
     {
         $this->root = new Node();
+        $this->tail = new Node();
         $this->length = 0;
+        $this->tailLength = 0;
+        $path = $this->offsetToPath(0);
+        array_pop($path);
+        $this->tailPath = $path;
     }
 
     public function push($value)
     {
         $newVector = clone $this;
-        $path = $this->offsetToPath($this->length);
-        $newVector->root = $this->root->assoc($path, $value);
         $newVector->length = $this->length + 1;
+        $path = $this->offsetToPath($this->length);
+        $pos = array_pop($path);
+        if ($this->tailLength < 32) {
+            $tail = $this->tail->assoc([$pos], $value);
+            $newVector->tail = $tail;
+            $newVector->tailLength++;
+        } else {
+            $newVector->tail = new Node();
+            $newVector->tail->set([$pos], $value);
+            $newVector->tailLength = 1;
+            $newVector->tailPath = $path;
+            $newVector->root = $this->root->assocNode($this->tailPath, $this->tail);
+        }
         return $newVector;
     }
     private function offsetToPath($offset)
@@ -44,6 +69,19 @@ class Vector implements \ArrayAccess, \Countable
         return $path;
     }
 
+    private function getLeaf($offset)
+    {
+        $tailOffset = $this->length - $this->tailLength;
+        if ($offset < $tailOffset) {
+            $path = $this->offsetToPath($offset);
+            $leaf = $this->root->get($path);
+        } else {
+            $offset -= $tailOffset;
+            $leaf = $this->tail->get([$offset]);
+        }
+        return $leaf;
+    }
+
     /**
      * (PHP 5 &gt;= 5.0.0)<br/>
      * Whether a offset exists
@@ -58,8 +96,8 @@ class Vector implements \ArrayAccess, \Countable
      */
     public function offsetExists($offset)
     {
-        $path = $this->offsetToPath($offset);
-        return $this->root->get($path) instanceof Leaf;
+        $leaf = $this->getLeaf($offset);
+        return $leaf instanceof Leaf;
     }
 
     /**
@@ -73,8 +111,7 @@ class Vector implements \ArrayAccess, \Countable
      */
     public function offsetGet($offset)
     {
-        $path = $this->offsetToPath($offset);
-        $leaf = $this->root->get($path);
+        $leaf = $this->getLeaf($offset);
 
         if ($leaf instanceof Leaf) {
             return $leaf->value();
@@ -127,4 +164,5 @@ class Vector implements \ArrayAccess, \Countable
     {
         return $this->length;
     }
+
 }
