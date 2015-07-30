@@ -44,7 +44,7 @@ class Node
     public function set($path, $value)
     {
         $next = array_shift($path);
-        if (!isset($this->children[$next])) {
+        if (!isset($this->children[$next]) || !count($path)) {
             $this->children[$next] = new Leaf($path, $value);
             return true;
         }
@@ -66,7 +66,7 @@ class Node
     {
         $newNode = clone $this;
         $next = array_shift($path);
-        if (!isset($newNode->children[$next])) {
+        if (!isset($newNode->children[$next]) || !count($path)) {
             $newNode->children[$next] = new Leaf($path, $value);
             return $newNode;
         }

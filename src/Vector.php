@@ -1,6 +1,7 @@
 <?php
 namespace Phersist;
 
+use Phersist\Exception\IndexOutOfBounds;
 use Phersist\Exception\MutationDisallowed;
 use Phersist\Trie\Leaf;
 use Phersist\Trie\Node;
@@ -40,17 +41,19 @@ class Vector implements \ArrayAccess, \Countable
         $newVector->length = $this->length + 1;
         $path = $this->offsetToPath($this->length);
         $pos = array_pop($path);
-        if ($this->tailLength < 32) {
-            $tail = $this->tail->assoc([$pos], $value);
-            $newVector->tail = $tail;
-            $newVector->tailLength++;
-        } else {
+
+        $tail = $this->tail->assoc([$pos], $value);
+        $newVector->tail = $tail;
+        $newVector->tailLength++;
+        if ($newVector->tailLength === 32) {
+            $path = $this->offsetToPath($newVector->tailLength);
+            array_pop($path);
             $newVector->tail = new Node();
-            $newVector->tail->set([$pos], $value);
-            $newVector->tailLength = 1;
+            $newVector->tailLength = 0;
             $newVector->tailPath = $path;
-            $newVector->root = $this->root->assocNode($this->tailPath, $this->tail);
+            $newVector->root = $this->root->assocNode($this->tailPath, $tail);
         }
+
         return $newVector;
     }
     private function offsetToPath($offset)
@@ -72,6 +75,7 @@ class Vector implements \ArrayAccess, \Countable
     private function getLeaf($offset)
     {
         $tailOffset = $this->length - $this->tailLength;
+        // echo "<[$offset, $tailOffset, {$this->length}, {$this->tailLength}]" . PHP_EOL;
         if ($offset < $tailOffset) {
             $path = $this->offsetToPath($offset);
             $leaf = $this->root->get($path);
@@ -80,6 +84,25 @@ class Vector implements \ArrayAccess, \Countable
             $leaf = $this->tail->get([$offset]);
         }
         return $leaf;
+    }
+
+    public function assoc($offset, $value)
+    {
+        if ($offset >= $this->length) {
+            throw new IndexOutOfBounds("Offset must be less than {$this->length}");
+        }
+
+        $newVector = clone $this;
+        $tailOffset = $this->length - $this->tailLength;
+        // echo "+[$offset, $tailOffset, {$this->length}, {$this->tailLength}]" . PHP_EOL;
+        if ($offset < $tailOffset) {
+            $path = $this->offsetToPath($offset);
+            $newVector->root = $newVector->root->assoc($path, $value);
+        } else {
+            $offset -= $tailOffset;
+            $newVector->tail = $newVector->tail->assoc([$offset], $value);
+        }
+        return $newVector;
     }
 
     /**
