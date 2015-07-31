@@ -22,20 +22,25 @@ class Node
     }
 
     /**
-     * @param $path
-     * @return Node|Leaf|null
+     * @param array $path
+     * @param int $depth
+     * @return null|Leaf|Node
      */
-    public function get($path)
+    public function get(array $path, $depth = 0)
     {
-        $next = array_shift($path);
+        $next = $path[$depth];
         $node = $this->children[$next];
 
+        ++$depth;
         if ($node instanceof Node) {
-            return $node->get($path);
+            return $node->get($path, $depth);
         }
 
-        if ($node instanceof Leaf && $node->path() === $path) {
-            return $node;
+        if ($node instanceof Leaf) {
+            $path = array_slice($path, $depth);
+            if ($node->eqPath($path)) {
+                return $node;
+            }
         }
 
         return null;
@@ -43,15 +48,20 @@ class Node
 
     public function set($path, $value)
     {
-        $next = array_shift($path);
+        $next = $path[0];
+        $path = array_slice($path, 1);
+
         if (!isset($this->children[$next]) || !count($path)) {
             $this->children[$next] = new Leaf($path, $value);
             return true;
         }
-        if ($this->children[$next] instanceof Node) {
-            return $this->children[$next]->set($path, $value);
-        }
+
         $leaf = $this->children[$next];
+
+        if ($leaf instanceof Node) {
+            return $leaf->set($path, $value);
+        }
+
         $this->children[$next] = new Node();
         $this->children[$next]->set($leaf->path(), $leaf->value());
         return $this->children[$next]->set($path, $value);
@@ -65,26 +75,31 @@ class Node
     public function assoc($path, $value)
     {
         $newNode = clone $this;
-        $next = array_shift($path);
+        $next = $path[0];
+        $path = array_slice($path, 1);
+
         if (!isset($newNode->children[$next]) || !count($path)) {
             $newNode->children[$next] = new Leaf($path, $value);
             return $newNode;
         }
-        if ($newNode->children[$next] instanceof Node) {
-            $newNode->children[$next] = $newNode->children[$next]->assoc($path, $value);
+        $leaf = $newNode->children[$next];
+        if ($leaf instanceof Node) {
+            $newNode->children[$next] = $leaf->assoc($path, $value);
             return $newNode;
         }
-        $leaf = $newNode->children[$next];
-        $newNode->children[$next] = new Node();
-        $newNode->children[$next]->set($leaf->path(), $leaf->value());
-        $newNode->children[$next]->set($path, $value);
+        $newChild = new Node();
+        $newNode->children[$next] = $newChild;
+        $newChild->set($leaf->path(), $leaf->value());
+        $newChild->set($path, $value);
         return $newNode;
     }
 
     public function assocNode($path, Node $node)
     {
         $newNode = clone $this;
-        $next = array_shift($path);
+        $next = $path[0];
+        $path = array_slice($path, 1);
+
         if (!count($path)) {
             $newNode->children[$next] = $node;
             return $newNode;

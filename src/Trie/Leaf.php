@@ -21,4 +21,9 @@ class Leaf
     {
         return $this->value;
     }
+
+    public function eqPath($path)
+    {
+        return ($this->path === $path);
+    }
 }

@@ -24,30 +24,32 @@ class Vector implements \ArrayAccess, \Countable
 
     private $tailPath;
 
+    private $tailOffset;
+
     public function __construct()
     {
         $this->root = new Node();
         $this->tail = new Node();
         $this->length = 0;
         $this->tailLength = 0;
-        $path = $this->offsetToPath(0);
-        array_pop($path);
+        $this->tailOffset = null;
+        $path = $this->offsetToPath(0, 7, 1);
         $this->tailPath = $path;
     }
 
     public function push($value)
     {
+        $this->tailOffset = null;
         $newVector = clone $this;
-        $newVector->length = $this->length + 1;
-        $path = $this->offsetToPath($this->length);
-        $pos = array_pop($path);
+        ++$newVector->length;
+        $path = $this->offsetToPath($this->length, 1);
+        $pos = $path[0];
 
         $tail = $this->tail->assoc([$pos], $value);
         $newVector->tail = $tail;
-        $newVector->tailLength++;
+        ++$newVector->tailLength;
         if ($newVector->tailLength === 32) {
-            $path = $this->offsetToPath($newVector->length);
-            array_pop($path);
+            $path = $this->offsetToPath($newVector->length, 7, 1);
             $newVector->tail = new Node();
             $newVector->tailLength = 0;
             $newVector->tailPath = $path;
@@ -56,31 +58,33 @@ class Vector implements \ArrayAccess, \Countable
 
         return $newVector;
     }
-    private function offsetToPath($offset)
+    private function offsetToPath($offset, $maxDepth = 7, $skip = 0)
     {
-        $shift = 5;
-        $path = [];
         if ($offset > 0xffffffff) {
             throw new \Exception('offset too large');
         }
-        $i = 0;
-        for ($i = 0; $i < 32; $i += $shift) {
-            $val = $offset >> $i;
-            $val &= 0x1f;
-            array_unshift($path, $val);
+        $path = [];
+        for (
+            $p = $skip, $i = 5 * $skip;
+            $i < 32 && $p < $maxDepth;
+            $i += 5, ++$p
+        ) {
+            $path[$p] = ($offset >> $i) & 0x1f;
         }
-        return $path;
+        return array_reverse($path);
     }
 
     private function getLeaf($offset)
     {
-        $tailOffset = $this->length - $this->tailLength;
-        // echo "<[$offset, $tailOffset, {$this->length}, {$this->tailLength}]" . PHP_EOL;
-        if ($offset < $tailOffset) {
+        if ($this->tailOffset === null) {
+            $this->tailOffset = $this->length - $this->tailLength;
+        }
+
+        if ($offset < $this->tailOffset) {
             $path = $this->offsetToPath($offset);
             $leaf = $this->root->get($path);
         } else {
-            $offset -= $tailOffset;
+            $offset -= $this->tailOffset;
             $leaf = $this->tail->get([$offset]);
         }
         return $leaf;
@@ -92,14 +96,16 @@ class Vector implements \ArrayAccess, \Countable
             throw new IndexOutOfBounds("Offset must be less than {$this->length}");
         }
 
+        if ($this->tailOffset === null) {
+            $this->tailOffset = $this->length - $this->tailLength;
+        }
+
         $newVector = clone $this;
-        $tailOffset = $this->length - $this->tailLength;
-        // echo "+[$offset, $tailOffset, {$this->length}, {$this->tailLength}]" . PHP_EOL;
-        if ($offset < $tailOffset) {
+        if ($offset < $this->tailOffset) {
             $path = $this->offsetToPath($offset);
             $newVector->root = $newVector->root->assoc($path, $value);
         } else {
-            $offset -= $tailOffset;
+            $offset -= $this->tailOffset;
             $newVector->tail = $newVector->tail->assoc([$offset], $value);
         }
         return $newVector;
